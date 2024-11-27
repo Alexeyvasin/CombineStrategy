@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  combine_strategy:
+    image: alexeyvasin/combine_strategy
+    container_name:  combine_strategy
+    env_file:
+      - .env
+    restart: always
+    command: "python combine_strategy.py"
