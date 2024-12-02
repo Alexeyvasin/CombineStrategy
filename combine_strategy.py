@@ -25,6 +25,7 @@ from utils import (
 load_dotenv()
 
 TOKEN = os.getenv('COMBINE_STRATEGY')
+TOKEN_EXP = os.getenv('EXPERIMENTS')
 account_combine_strategy = 'Combine_Strategy'
 MAX_PRICE_ONE_POSITION = 500
 VOLUME_FOR_STOPS = 2  # %
@@ -132,7 +133,7 @@ async def buyer(
 
 
 async def trader():
-    async with AsyncClient(TOKEN) as client:
+    async with AsyncClient(TOKEN_EXP) as client:
         # getting brokers account
         accounts = await  client.users.get_accounts()
         for account in accounts.accounts:
@@ -158,9 +159,11 @@ async def trader():
             return
 
         instrs = await get_instr(client)
-        coro = [is_sma_growing(client, instr, semaphore=asyncio.Semaphore(15)) for instr in instrs]
+        semaphore = asyncio.Semaphore(15)
+        coro = [is_sma_growing(client, instr, semaphore=semaphore) for instr in instrs]
         instrs = [instr for instr in await asyncio.gather(*coro) if instr]
-        coro = [is_rsi_more_than(client, instr, semaphore=asyncio.Semaphore(15)) for instr in instrs]
+
+        coro = [is_rsi_more_than(client, instr, semaphore=semaphore) for instr in instrs]
         instrs = sorted([instr for instr in await asyncio.gather(*coro) if instr],
                         key=lambda instr: instr[1])
 
