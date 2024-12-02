@@ -136,7 +136,7 @@ async def buyer(
 
 
 async def trader():
-    async with AsyncClient(TOKEN_EXP) as client:
+    async with AsyncClient(TOKEN) as client:
         # getting brokers account
         accounts = await  client.users.get_accounts()
         for account in accounts.accounts:
