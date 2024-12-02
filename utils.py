@@ -32,4 +32,18 @@ def change_quotation(price_q: Quotation, min_inc_q: Quotation, changing_percents
             if target_price_q.nano < 0:
                 target_price_q.units -= 1
                 target_price_q.nano = (10 ** 9) - target_price_q.nano
-        return  target_price_q
+        return target_price_q
+
+
+def main():
+    res = change_quotation(
+        Quotation(units=10, nano=860000000),
+        Quotation(units=0, nano=10000000),
+        2,
+        increase=False,
+    )
+    print(res)
+
+
+if __name__ == '__main__':
+    main()

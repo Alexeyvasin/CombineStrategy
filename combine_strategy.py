@@ -28,7 +28,7 @@ TOKEN = os.getenv('COMBINE_STRATEGY')
 TOKEN_EXP = os.getenv('EXPERIMENTS')
 account_combine_strategy = 'Combine_Strategy'
 MAX_PRICE_ONE_POSITION = 500
-VOLUME_FOR_STOPS = 2  # %
+VOLUME_FOR_STOPS = 0.5  # %
 
 
 async def buyer(
@@ -52,7 +52,6 @@ async def buyer(
             # If cost of  one lot  more then i have money in  account
             if free_money - cost_one_lot <= 10:
                 print(f'Не хватает бабла на счёте {instrument[0].ticker} price: {last_price.price}')
-                print(f'*min_price_inc {instrument[0].min_price_increment}')
                 return
             lots_quantity = int(MAX_PRICE_ONE_POSITION / cost_one_lot)
             break
@@ -75,10 +74,13 @@ async def buyer(
             price=Quotation(units=last_price.price.units, nano=last_price.price.nano)
         )
         print(f'*purchase: {purchase}')
+        print(f'*exec_or_price: {purchase.executed_order_price}')
+        print(f'*min_price_inc: {instrument[0].min_price_increment}')
+        purchase_price_q = Quotation(units=purchase.executed_order_price.units, nano=purchase.executed_order_price.nano)
         price_take_profit_q = change_quotation(
-            last_price.price,
-            instrument[0].min_price_increment,
-            VOLUME_FOR_STOPS,
+            price_q=Quotation(units=purchase_price_q.units, nano=purchase_price_q.nano),
+            min_inc_q=instrument[0].min_price_increment,
+            changing_percents=VOLUME_FOR_STOPS,
             increase=True)
         print('*cost_one_lot:', cost_one_lot)
         print(f'*price_take_profit_q: {price_take_profit_q}')
@@ -97,22 +99,23 @@ async def buyer(
                     expiration_type=1,
                     stop_order_type=1,
                 )
-                print('*take_profit', take_profit)
                 is_take_profit = True
             finally:
                 pass
 
         price_stop_loss_q = change_quotation(
-            last_price.price,
-            instrument[0].min_price_increment,
-            VOLUME_FOR_STOPS,
+            price_q=Quotation(units=purchase_price_q.units, nano=purchase_price_q.nano),
+            min_inc_q=instrument[0].min_price_increment,
+            changing_percents=VOLUME_FOR_STOPS,
             increase=False,
         )
 
         is_stop_loss = False
+        print(f'*purchase_price_q: {purchase_price_q}')
+        print(f'*price_stop_loss_q: {price_stop_loss_q}')
         while not is_stop_loss:
             try:
-                stop_loss = await  client.stop_orders.post_stop_order(
+                stop_loss = await client.stop_orders.post_stop_order(
                     quantity=lots_quantity,
                     direction=2,
                     account_id=account.id,
@@ -123,7 +126,7 @@ async def buyer(
                     expiration_type=1,
                     stop_order_type=2,
                 )
-                print('*stop_loss', stop_loss)
+
                 is_stop_loss = True
             finally:
                 pass
