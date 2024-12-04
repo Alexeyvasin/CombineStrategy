@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 import asyncio
-from datetime import datetime, timedelta
+from datetime import timedelta
 from pprint import pprint
 
 from tinkoff.invest import AsyncClient
@@ -13,14 +13,12 @@ from tinkoff.invest.schemas import (
     IndicatorType,
     IndicatorInterval,
     TypeOfPrice,
-    Deviation,
-    Smoothing,
     InstrumentStatus,
-    InstrumentExchangeType,
     SecurityTradingStatus,
 )
 
-from utils import get_quotation, get_price
+from utils import get_price
+from settings import EXCLUDED_INSTRS
 
 load_dotenv()
 
@@ -29,28 +27,13 @@ TOKEN = os.getenv('RSI_30')
 sem_for_sma_growing = asyncio.Semaphore(1)
 
 
-# def get_request(
-#         indicator_type: IndicatorType,
-#         instrument_uid: str,
-#         from_: datetime,
-#         to: datetime,
-#         interval: IndicatorInterval,
-#         type_of_price: TypeOfPrice,
-#         length: int,
-#         deviation: Deviation,
-#         smoothing: Smoothing
-# ) -> GetTechAnalysisRequest:
-#     return GetTechAnalysisRequest(
-#         indicator_type=indicator_type,
-#         instrument_uid=instrument_uid,
-#         from_=from_,
-#         to=to,
-#         interval=interval,
-#         type_of_price=type_of_price,
-#         length=length,
-#         deviation=deviation,
-#         smoothing=smoothing,
-#     )
+def excluder_instr(instrs: list):
+    instrs_temp = []
+    for instr in instrs:
+        if instr[0].ticker not in EXCLUDED_INSTRS:
+            instrs_temp.append(instr)
+    return instrs_temp
+
 
 async def is_sma_growing(
         client: AsyncServices,
@@ -154,7 +137,7 @@ async def get_instr(
     for instrs in set_or_instrs:
         for instr in instrs.instruments:
             if (instr.trading_status in trading_statuses and
-                not instr.for_qual_investor_flag and
+                    not instr.for_qual_investor_flag and
                     instr.exchange != 'unknown' and
                     instr.api_trade_available_flag
             ):

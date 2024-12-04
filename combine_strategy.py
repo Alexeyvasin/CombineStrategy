@@ -3,7 +3,6 @@ import datetime
 import os
 from dotenv import load_dotenv
 import random
-from pprint import pprint
 import tinkoff
 
 from tinkoff.invest import AsyncClient
@@ -14,11 +13,10 @@ from filters import (
     is_rsi_more_than,
     is_sma_growing,
     get_instr,
+    excluder_instr,
 )
 
 from utils import (
-    get_quotation,
-    get_price,
     change_quotation,
 )
 
@@ -88,7 +86,7 @@ async def buyer(
         is_take_profit = False
         while not is_take_profit:
             try:
-                take_profit = await  client.stop_orders.post_stop_order(
+                take_profit = await client.stop_orders.post_stop_order(
                     quantity=lots_quantity,
                     direction=2,
                     account_id=account.id,
@@ -138,7 +136,7 @@ async def buyer(
 async def trader():
     async with AsyncClient(TOKEN) as client:
         # getting brokers account
-        accounts = await  client.users.get_accounts()
+        accounts = await client.users.get_accounts()
         for account in accounts.accounts:
             if account.name == account_combine_strategy:
                 break
@@ -165,10 +163,12 @@ async def trader():
         semaphore = asyncio.Semaphore(15)
         coro = [is_sma_growing(client, instr, semaphore=semaphore) for instr in instrs]
         instrs = [instr for instr in await asyncio.gather(*coro) if instr]
-
+        semaphore = asyncio.Semaphore(15)
         coro = [is_rsi_more_than(client, instr, semaphore=semaphore) for instr in instrs]
         instrs = sorted([instr for instr in await asyncio.gather(*coro) if instr],
                         key=lambda instr: instr[1])
+
+        instrs = excluder_instr(instrs)
 
         last_prices = await client.market_data.get_last_prices(instrument_id=[instr[0].uid for instr in instrs])
         # print('*last_prices', last_prices)

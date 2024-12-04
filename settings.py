@@ -1,0 +1,4 @@
+
+EXCLUDED_INSTRS = [
+    'TPAY'
+]
